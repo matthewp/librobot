@@ -1,15 +1,28 @@
 #include <stdio.h>
 #include "librobot.c"
 
+typedef struct FormData {
+  char *login;
+  char *password;
+} FormData;
+
 void print_current(State *state)
 {
   printf("Current: %s\n", state->name);
 }
 
+bool canTransition(FormData *data, Event event)
+{
+  return true;
+}
+
 int main()
 {
+  Transition nextToYellow = rbt_transition("next", "yellow");
+  rbt_add_guard(&nextToYellow, (void*)&canTransition);
+
   State green = rbt_state("green", (Transition[]) {
-    rbt_transition("next", "yellow")
+    nextToYellow
   }, 1);
 
   State yellow = rbt_state("yellow", (Transition[]) {
@@ -23,15 +36,20 @@ int main()
   State states[] = { green, yellow, red };
   Machine machine = rbt_machine(states, 3);
 
+  FormData data = {};
+  rbt_add_data(&machine, &data);
+
   State *state = machine.initial;
 
   print_current(state);
 
-  state = rbt_send(&machine, state, "next");
+  state = rbt_send(&machine, state, (Event) { .name = "next" });
   print_current(state);
 
-  state = rbt_send(&machine, state, "next");
+  state = rbt_send(&machine, state, (Event) { .name = "next" });
   print_current(state);
+
+  rbt_machine_cleanup(&machine);
 
   return 0;
 }

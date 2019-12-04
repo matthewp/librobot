@@ -1,6 +1,6 @@
 
 program: main.c librobot.c
-	cc -o $@ main.c
+	$(CC) -o $@ main.c
 
 clean:
 	@rm program
