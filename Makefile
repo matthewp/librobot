@@ -6,8 +6,8 @@ build/TestBasics: librobot.c test/test_basics.c unity/src/unity.c
 	$(CC) -o $@ test/test_basics.c ./unity/src/unity.c
 
 clean:
-	@rm program
-	@rm build/TestBasics
+	@rm -f program
+	@rm -f build/TestBasics
 .PHONY: clean
 
 run: program
