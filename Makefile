@@ -2,7 +2,7 @@
 program: main.c librobot.c
 	$(CC) -o $@ main.c
 
-build/TestBasics: librobot.c test/test_basics.c unity/src/unity.c
+build/TestBasics: test/test_basics.c librobot.c unity/src/unity.c
 	$(CC) -o $@ test/test_basics.c ./unity/src/unity.c
 
 clean:
