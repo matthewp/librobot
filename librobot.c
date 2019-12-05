@@ -9,6 +9,7 @@ typedef struct Event
 } Event;
 
 typedef bool (GuardFunction)(void* data, Event ev);
+typedef void (MutateFunction)(void* data, Event ev);
 
 typedef struct Guard
 {
@@ -16,12 +17,19 @@ typedef struct Guard
   struct Guard *next;
 } Guard;
 
+typedef struct Mutater
+{
+  MutateFunction *fn;
+  struct Mutater *next;
+} Mutater;
+
 typedef struct Transition
 {
   char *from;
   char *to;
   struct Transition *next;
   Guard *guard;
+  Mutater *mutater;
 } Transition;
 
 typedef struct State
@@ -51,7 +59,8 @@ Transition rbt_transition(char *from, char *to)
   Transition t = {
     .from = from,
     .to = to,
-    .guard = guard
+    .guard = guard,
+    .mutater = NULL
   };
 
   return t;
@@ -64,6 +73,17 @@ Transition * rbt_add_guard(Transition *t, GuardFunction *guard_function)
   guard->next = t->guard;
 
   t->guard = guard;
+
+  return t;
+}
+
+Transition * rbt_add_mutate(Transition *t, MutateFunction *mutate_function)
+{
+  Mutater *mutater = malloc(sizeof *mutater);
+  mutater->fn = mutate_function;
+  mutater->next = t->mutater;
+
+  t->mutater = mutater;
 
   return t;
 }
@@ -129,6 +149,14 @@ void rbt_machine_cleanup(Machine *machine)
         Guard *next_guard = guard->next;
         free(guard);
         guard = next_guard;
+      }
+
+      Mutater *mutater = transition->mutater;
+
+      while(mutater != NULL) {
+        Mutater *next_mutater = mutater->next;
+        free(mutater);
+        mutater = next_mutater;
       }
 
       transition = transition->next;

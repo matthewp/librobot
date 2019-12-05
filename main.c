@@ -16,10 +16,18 @@ bool canTransition(FormData *data, Event event)
   return true;
 }
 
+void setLogin(FormData *data, Event event)
+{
+  printf("Running the mutater\n");
+  data->login = "something else";
+}
+
 int main()
 {
   Transition nextToYellow = rbt_transition("next", "yellow");
   rbt_add_guard(&nextToYellow, (void*)&canTransition);
+
+  rbt_add_mutate(&nextToYellow, (void*)&setLogin);
 
   State green = rbt_state("green", (Transition[]) {
     nextToYellow
@@ -48,6 +56,8 @@ int main()
 
   state = rbt_send(&machine, state, (Event) { .name = "next" });
   print_current(state);
+
+  printf("Login is %s\n", data.login);
 
   rbt_machine_cleanup(&machine);
 
