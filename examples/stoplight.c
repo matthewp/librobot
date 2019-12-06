@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "librobot.c"
+#include "../robot.c"
 
 typedef struct FormData {
   char *login;

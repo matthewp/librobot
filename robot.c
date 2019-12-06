@@ -1,49 +1,4 @@
-#include <string.h>
-#include <stdbool.h>
-#include <stdlib.h>
-
-typedef struct Event
-{
-  void * data;
-  char * name;
-} Event;
-
-typedef bool (GuardFunction)(void* data, Event ev);
-typedef void (MutateFunction)(void* data, Event ev);
-
-typedef struct Guard
-{
-  GuardFunction *fn;
-  struct Guard *next;
-} Guard;
-
-typedef struct Mutater
-{
-  MutateFunction *fn;
-  struct Mutater *next;
-} Mutater;
-
-typedef struct Transition
-{
-  char *from;
-  char *to;
-  struct Transition *next;
-  Guard *guard;
-  Mutater *mutater;
-} Transition;
-
-typedef struct State
-{
-  char *name;
-  Transition *transition;
-  struct State *next;
-} State;
-
-typedef struct Machine
-{
-  State *initial;
-  void* data;
-} Machine;
+#include "robot.h"
 
 static bool default_guard(void* data, Event ev)
 {
@@ -112,6 +67,11 @@ State rbt_state(char *name, Transition transitions[], size_t n)
   s.transition = &transitions[0];
 
   return s;
+}
+
+State rbt_final(char *name)
+{
+  return rbt_state(name, (Transition[]) {}, 0);
 }
 
 Machine rbt_machine(State states[], size_t n)
