@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "../librobot.c"
+#include "../robot.c"
 #include "../unity/src/unity.h"
 
 void setUp(void) {
