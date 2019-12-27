@@ -64,7 +64,11 @@ State rbt_state(char *name, Transition transitions[], size_t n)
     i++;
   }
 
-  s.transition = &transitions[0];
+  if(n > 0) {
+    s.transition = &transitions[0];
+  } else {
+    s.transition = NULL;
+  }
 
   return s;
 }
@@ -142,6 +146,15 @@ bool run_guards(Guard *g, Event ev, void* d)
   return passes;
 }
 
+void run_mutators(Mutater *m, Event ev, void* d)
+{
+  bool passes = true;
+  while(m != NULL) {
+    m->fn(d, ev);
+    m = m->next;
+  }
+}
+
 State * rbt_send(Machine *machine, State *current, Event ev)
 {
   Transition *t = current->transition;
@@ -151,6 +164,8 @@ State * rbt_send(Machine *machine, State *current, Event ev)
       if(!run_guards(t->guard, ev, machine->data)) {
         break;
       }
+
+      run_mutators(t->mutater, ev, machine->data);
 
       char *new_state_name = t->to;
       State *new_state = machine->initial;
