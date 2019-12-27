@@ -1,8 +1,36 @@
 #include "robot.h"
 
+static State * transition_to(Machine *machine, State *current, Transition *t, Event ev);
+
 static bool default_guard(void* data, Event ev)
 {
   return true;
+}
+
+static bool is_immediate_transition(Transition *t)
+{
+  return t->from == NULL;
+}
+
+static State * enter_state(Machine *machine, State *state, Event ev)
+{
+  // A noop at the moment.
+  return state;
+}
+
+static State * enter_immediate(Machine *machine, State *state, Event ev)
+{
+  Transition *t = state->transition;
+
+  while(t != NULL) {
+    if(is_immediate_transition(t)) {
+      return transition_to(machine, state, t, ev);
+    }
+
+    t = t->next;
+  }
+
+  return state;
 }
 
 Transition rbt_transition(char *from, char *to)
@@ -19,6 +47,11 @@ Transition rbt_transition(char *from, char *to)
   };
 
   return t;
+}
+
+Transition rbt_immediate(char *to)
+{
+  return rbt_transition(NULL, to);
 }
 
 Transition * rbt_add_guard(Transition *t, GuardFunction *guard_function)
@@ -54,13 +87,17 @@ State rbt_state(char *name, Transition transitions[], size_t n)
   State s = {.name = name};
 
   int i = 0;
+  bool isImmediate = false;
   Transition *last = NULL;
 
   while(i < n) {
     Transition t = transitions[i];
     t.next = last;
-    last = &t;
+    if(is_immediate_transition(&t)) {
+      isImmediate = true;
+    }
 
+    last = &t;
     i++;
   }
 
@@ -68,6 +105,12 @@ State rbt_state(char *name, Transition transitions[], size_t n)
     s.transition = &transitions[0];
   } else {
     s.transition = NULL;
+  }
+
+  if(isImmediate) {
+    s.enter = &enter_immediate;
+  } else {
+    s.enter = &enter_state;
   }
 
   return s;
@@ -130,7 +173,7 @@ void rbt_machine_cleanup(Machine *machine)
   }
 }
 
-bool run_guards(Guard *g, Event ev, void* d)
+static bool run_guards(Guard *g, Event ev, void* d)
 {
   bool passes = true;
   while(g != NULL) {
@@ -146,7 +189,7 @@ bool run_guards(Guard *g, Event ev, void* d)
   return passes;
 }
 
-void run_mutators(Mutater *m, Event ev, void* d)
+static void run_mutators(Mutater *m, Event ev, void* d)
 {
   bool passes = true;
   while(m != NULL) {
@@ -155,27 +198,36 @@ void run_mutators(Mutater *m, Event ev, void* d)
   }
 }
 
+static State * transition_to(Machine *machine, State *current, Transition *t, Event ev)
+{
+  if(!run_guards(t->guard, ev, machine->data)) {
+    return current;
+  }
+
+  run_mutators(t->mutater, ev, machine->data);
+
+  char *new_state_name = t->to;
+  State *new_state = machine->initial;
+
+  int i = 0;
+  while(new_state != NULL) {
+    i++;
+    if(strcmp(new_state->name, new_state_name) == 0) {
+      return new_state->enter(machine, new_state, ev);
+    }
+    new_state = new_state->next;
+  }
+
+  return current;
+}
+
 State * rbt_send(Machine *machine, State *current, Event ev)
 {
   Transition *t = current->transition;
 
   while(t != NULL) {
-    if(strcmp(t->from, ev.name) == 0) {
-      if(!run_guards(t->guard, ev, machine->data)) {
-        break;
-      }
-
-      run_mutators(t->mutater, ev, machine->data);
-
-      char *new_state_name = t->to;
-      State *new_state = machine->initial;
-
-      while(new_state != NULL) {
-        if(strcmp(new_state->name, new_state_name) == 0) {
-          return new_state;
-        }
-        new_state = new_state->next;
-      }
+    if(strcmp(current->transition->from, ev.name) == 0) {
+      return transition_to(machine, current, current->transition, ev);
     }
 
     t = t->next;

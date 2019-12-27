@@ -15,6 +15,7 @@ clean:
 	@rm -f build/StopLight
 	@rm -f build/TestBasics
 	@rm -f build/TestGuard
+	@rm -f build/TestMutate
 .PHONY: clean
 
 run: build/StopLight
