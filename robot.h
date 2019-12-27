@@ -42,7 +42,7 @@ typedef struct State
 typedef struct Machine
 {
   State *initial;
-  void* data;
+  void * data;
 } Machine;
 
 Transition rbt_transition(char *from, char *to);
