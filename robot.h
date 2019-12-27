@@ -8,8 +8,13 @@ typedef struct Event
   char * name;
 } Event;
 
+struct Machine;
+struct State;
+
 typedef bool (GuardFunction)(void* data, Event ev);
 typedef void (MutateFunction)(void* data, Event ev);
+
+typedef struct State * (EnterFunction)(struct Machine *machine, struct State *state, Event ev);
 
 typedef struct Guard
 {
@@ -37,6 +42,7 @@ typedef struct State
   char *name;
   Transition *transition;
   struct State *next;
+  EnterFunction *enter;
 } State;
 
 typedef struct Machine
@@ -46,6 +52,7 @@ typedef struct Machine
 } Machine;
 
 Transition rbt_transition(char *from, char *to);
+Transition rbt_immediate(char *to);
 Transition * rbt_add_guard(Transition *t, GuardFunction *guard_function);
 Transition * rbt_add_mutate(Transition *t, MutateFunction *mutate_function);
 Machine * rbt_add_data(Machine *machine, void* data);

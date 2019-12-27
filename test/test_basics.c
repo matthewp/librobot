@@ -33,11 +33,32 @@ void test_Basics()
   state = rbt_send(&machine, state, (Event) { .name = "toggle" });
   TEST_ASSERT_EQUAL_STRING_MESSAGE("on", state->name, "Toggles back to on");
 
+  rbt_machine_cleanup(&machine);
+}
+
+void test_Immediate()
+{
+  Machine machine = rbt_machine(
+    (State[]) {
+      rbt_state("initial", (Transition[]) {
+        rbt_transition("next", "second")
+      }, 1),
+      rbt_state("second", (Transition[]) {
+        rbt_immediate("last")
+      }, 1),
+      rbt_final("last")
+    },
+  3);
+
+  State *state = rbt_send(&machine, machine.initial, (Event) { .name = "next" });
+
+  TEST_ASSERT_EQUAL_STRING_MESSAGE("last", state->name, "Moved to last");
 }
 
 int main(void)
 {
   UNITY_BEGIN();
   RUN_TEST(test_Basics);
+  RUN_TEST(test_Immediate);
   return UNITY_END();
 }
