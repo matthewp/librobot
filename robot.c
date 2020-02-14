@@ -86,23 +86,29 @@ State rbt_state(char *name, Transition transitions[], size_t n)
 {
   State s = {.name = name};
 
-  int i = 0;
+  int i = n - 1;
   bool isImmediate = false;
   Transition *last = NULL;
 
-  while(i < n) {
+  while(i >= 0) {
     Transition t = transitions[i];
-    t.next = last;
+    Transition *lt = malloc(sizeof *lt);
+    lt->from = t.from;
+    lt->to = t.to;
+    lt->guard = t.guard;
+    lt->mutater = t.mutater;
+    lt->next = last;
+
     if(is_immediate_transition(&t)) {
       isImmediate = true;
     }
 
-    last = &t;
-    i++;
+    last = lt;
+    i--;
   }
 
   if(n > 0) {
-    s.transition = &transitions[0];
+    s.transition = last;
   } else {
     s.transition = NULL;
   }
@@ -166,7 +172,9 @@ void rbt_machine_cleanup(Machine *machine)
         mutater = next_mutater;
       }
 
-      transition = transition->next;
+      Transition *next_transition = transition->next;
+      free(transition);
+      transition = next_transition;
     }
 
     state = state->next;
@@ -226,8 +234,8 @@ State * rbt_send(Machine *machine, State *current, Event ev)
   Transition *t = current->transition;
 
   while(t != NULL) {
-    if(strcmp(current->transition->from, ev.name) == 0) {
-      return transition_to(machine, current, current->transition, ev);
+    if(strcmp(t->from, ev.name) == 0) {
+      return transition_to(machine, current, t, ev);
     }
 
     t = t->next;

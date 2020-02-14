@@ -36,6 +36,23 @@ void test_Basics()
   rbt_machine_cleanup(&machine);
 }
 
+void test_MultipleTransitions()
+{
+  Machine machine = rbt_machine(
+    (State[]) {
+      rbt_state("idle", (Transition[]) {
+        rbt_transition("one", "one"),
+        rbt_transition("two", "two")
+      }, 2),
+      rbt_final("one"),
+      rbt_final("two")
+    },
+  3);
+
+  State *state = rbt_send(&machine, machine.initial, (Event) { .name = "two" });
+  TEST_ASSERT_EQUAL_STRING_MESSAGE("two", state->name, "Now in the two state");
+}
+
 void test_Immediate()
 {
   Machine machine = rbt_machine(
@@ -59,6 +76,7 @@ int main(void)
 {
   UNITY_BEGIN();
   RUN_TEST(test_Basics);
+  RUN_TEST(test_MultipleTransitions);
   RUN_TEST(test_Immediate);
   return UNITY_END();
 }
