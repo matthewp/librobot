@@ -11,19 +11,25 @@ build/TestGuard: test/test_guard.c robot.c robot.h unity/src/unity.c
 build/TestMutate: test/test_mutate.c robot.c robot.h unity/src/unity.c
 	$(CC) -o $@ test/test_mutate.c ./unity/src/unity.c
 
+build/TestInvoke: test/test_invoke.c robot.c robot.h unity/src/unity.c
+	$(CC) -o $@ test/test_invoke.c ./unity/src/unity.c
+
 clean:
 	@rm -f build/StopLight
 	@rm -f build/TestBasics
 	@rm -f build/TestGuard
 	@rm -f build/TestMutate
+	@rm -f build/TestInvoke
+	
 .PHONY: clean
 
 run: build/StopLight
 	@./build/StopLight
 .PHONY: run
 
-test: build/TestBasics build/TestGuard build/TestMutate
+test: build/TestBasics build/TestGuard build/TestMutate build/TestInvoke
 	@build/TestBasics
 	@build/TestGuard
 	@build/TestMutate
+	@build/TestInvoke
 .PHONY: test

@@ -14,7 +14,7 @@ struct State;
 typedef bool (GuardFunction)(void* data, Event ev);
 typedef void (MutateFunction)(void* data, Event ev);
 
-typedef struct State * (EnterFunction)(struct Machine *machine, struct State *state, Event ev);
+typedef struct Current (EnterFunction)(struct Machine *machine, struct State *state, Event ev);
 
 typedef struct Guard
 {
@@ -43,13 +43,21 @@ typedef struct State
   Transition *transition;
   struct State *next;
   EnterFunction *enter;
+  struct Machine *child;
 } State;
 
 typedef struct Machine
 {
-  State *initial;
+  struct Current *initial;
   void * data;
 } Machine;
+
+typedef struct Current
+{
+  State *state;
+  Machine *machine;
+  Machine *child;
+} Current;
 
 Transition rbt_transition(char *from, char *to);
 Transition rbt_immediate(char *to);
@@ -58,9 +66,10 @@ Transition * rbt_add_mutate(Transition *t, MutateFunction *mutate_function);
 Machine * rbt_add_data(Machine *machine, void* data);
 
 State rbt_state(char *name, Transition transitions[], size_t n);
+State rbt_invoke(char *name, Machine *child, Transition transitions[], size_t n);
 State rbt_final(char *name);
 
 Machine rbt_machine(State states[], size_t n);
 void rbt_machine_cleanup(Machine *machine);
 
-State * rbt_send(Machine *machine, State *current, Event ev);
+Current rbt_send(Machine *machine, State *current, Event ev);

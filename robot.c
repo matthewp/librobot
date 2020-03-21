@@ -1,6 +1,6 @@
 #include "robot.h"
 
-static State * transition_to(Machine *machine, State *current, Transition *t, Event ev);
+static Current transition_to(Machine *machine, State *current, Transition *t, Event ev);
 
 static bool default_guard(void* data, Event ev)
 {
@@ -12,13 +12,22 @@ static bool is_immediate_transition(Transition *t)
   return t->from == NULL;
 }
 
-static State * enter_state(Machine *machine, State *state, Event ev)
+static Current create_current(Machine *machine, State *state)
 {
-  // A noop at the moment.
-  return state;
+  Current current = {
+    .state = state,
+    .machine = machine,
+    .child = NULL
+  };
+  return current;
 }
 
-static State * enter_immediate(Machine *machine, State *state, Event ev)
+static Current enter_state(Machine *machine, State *state, Event ev)
+{
+  return create_current(machine, state);
+}
+
+static Current enter_immediate(Machine *machine, State *state, Event ev)
 {
   Transition *t = state->transition;
 
@@ -30,7 +39,18 @@ static State * enter_immediate(Machine *machine, State *state, Event ev)
     t = t->next;
   }
 
-  return state;
+  return create_current(machine, state);
+}
+
+static Current enter_invoke(Machine *machine, State *state, Event ev)
+{
+  // Specify that this machine has a child machine.
+  //machine->child = state->child;
+  printf("Entering the invoke\n");
+
+  Current current = create_current(machine, state);
+  current.child = state->child;
+  return current;
 }
 
 Transition rbt_transition(char *from, char *to)
@@ -122,6 +142,15 @@ State rbt_state(char *name, Transition transitions[], size_t n)
   return s;
 }
 
+State rbt_invoke(char *name, Machine *child, Transition transitions[], size_t n)
+{
+  State s = rbt_state(name, transitions, n);
+  s.child = child;
+  s.enter = &enter_invoke;
+
+  return s;
+}
+
 State rbt_final(char *name)
 {
   return rbt_state(name, (Transition[]) {}, 0);
@@ -143,14 +172,15 @@ Machine rbt_machine(State states[], size_t n)
     i--;
   }
 
-  m.initial = &states[0];
+  Current initial = create_current(&m, &states[0]);
+  m.initial = &initial;
 
   return m;
 }
 
 void rbt_machine_cleanup(Machine *machine)
 {
-  State *state = machine->initial;
+  State *state = machine->initial->state;
 
   while(state != NULL) {
     Transition *transition = state->transition;
@@ -206,16 +236,16 @@ static void run_mutators(Mutater *m, Event ev, void* d)
   }
 }
 
-static State * transition_to(Machine *machine, State *current, Transition *t, Event ev)
+static Current transition_to(Machine *machine, State *state, Transition *t, Event ev)
 {
   if(!run_guards(t->guard, ev, machine->data)) {
-    return current;
+    return create_current(machine, state);
   }
 
   run_mutators(t->mutater, ev, machine->data);
 
   char *new_state_name = t->to;
-  State *new_state = machine->initial;
+  State *new_state = machine->initial->state;
 
   int i = 0;
   while(new_state != NULL) {
@@ -226,20 +256,20 @@ static State * transition_to(Machine *machine, State *current, Transition *t, Ev
     new_state = new_state->next;
   }
 
-  return current;
+  return create_current(machine, state);
 }
 
-State * rbt_send(Machine *machine, State *current, Event ev)
+Current rbt_send(Machine *machine, State *state, Event ev)
 {
-  Transition *t = current->transition;
+  Transition *t = state->transition;
 
   while(t != NULL) {
     if(strcmp(t->from, ev.name) == 0) {
-      return transition_to(machine, current, t, ev);
+      return transition_to(machine, state, t, ev);
     }
 
     t = t->next;
   }
 
-  return current;
+  return create_current(machine, state);
 }
